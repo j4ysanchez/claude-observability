@@ -329,13 +329,13 @@ into its detail view.
 
 **Purpose**: End-to-end validation and checks that span every story.
 
-- [ ] T058 [P] Run every scenario in quickstart.md end-to-end against the built dashboard
+- [X] T058 [P] Run every scenario in quickstart.md end-to-end against the built dashboard
       and record results
-- [ ] T059 [P] Write `README.md` at repo root covering install/build/start/sync usage
-- [ ] T060 Verify redaction on disk (quickstart Scenario 7): ingest a fixture with a
+- [X] T059 [P] Write `README.md` at repo root covering install/build/start/sync usage
+- [X] T060 Verify redaction on disk (quickstart Scenario 7): ingest a fixture with a
       pattern-matching secret, inspect `~/.claude-observability/usage.db` directly, and
       confirm no raw secret is ever present, not just hidden by the UI
-- [ ] T061 Seed ~10^5 `usage_events` rows in a temp DB and confirm `GET /api/summary` and
+- [X] T061 Seed ~10^5 `usage_events` rows in a temp DB and confirm `GET /api/summary` and
       `GET /api/trend` respond in <200ms (Performance Goals in plan.md)
 
 ---
