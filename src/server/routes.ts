@@ -17,9 +17,11 @@ import {
   getEventDetail,
   getEventsPage,
   getLastIngestAt,
+  getSessionsRollup,
   getUsageEventsSince,
   type EventDetail,
   type EventsPage,
+  type SessionListRow,
 } from "../storage/repository.js";
 
 export type RangeParam = "today" | "7d" | "30d" | "all";
@@ -229,4 +231,47 @@ export function handleEventDetail(
 ): EventDetail | null {
   syncTranscripts(db, transcriptRoot);
   return getEventDetail(db, eventId);
+}
+
+export interface SessionsListResponse {
+  readonly sessions: ReadonlyArray<SessionListRow>;
+}
+
+/**
+ * GET /api/sessions?range= (contracts/api.md, User Story 5): lightweight
+ * rollup stats per session (`eventCount`, derived `status`) for browsing
+ * into a session's timeline (FR-008).
+ */
+export function handleSessionsList(
+  db: Database.Database,
+  rangeParam: string | null,
+  transcriptRoot?: string
+): SessionsListResponse {
+  syncTranscripts(db, transcriptRoot);
+
+  const since = rangeSince(parseRange(rangeParam));
+  return { sessions: getSessionsRollup(db, since) };
+}
+
+/**
+ * GET /api/sessions/:sessionId/events (contracts/api.md, User Story 5):
+ * chronological event sequence for one session — same row shape as
+ * `GET /api/events`, filtered to that session and always sorted by
+ * `sequence` ascending (handled by `getEventsPage` when `sessionId` is set).
+ */
+export function handleSessionEvents(
+  db: Database.Database,
+  sessionId: string,
+  pageParam: string | null,
+  transcriptRoot?: string
+): EventsPage {
+  syncTranscripts(db, transcriptRoot);
+
+  return getEventsPage(db, {
+    since: null,
+    tool: null,
+    subagentType: null,
+    sessionId,
+    page: parsePageParam(pageParam),
+  });
 }

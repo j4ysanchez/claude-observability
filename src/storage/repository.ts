@@ -232,6 +232,86 @@ export interface EventsQuery {
   readonly page: number;
 }
 
+export type SessionStatus = "in_progress" | "concluded";
+
+export interface SessionListRow {
+  readonly sessionId: string;
+  readonly projectPath: string;
+  readonly startedAt: string;
+  readonly lastEventAt: string;
+  readonly status: SessionStatus;
+  readonly eventCount: number;
+}
+
+interface SessionRollupQueryRow {
+  readonly session_id: string;
+  readonly project_path: string;
+  readonly started_at: string;
+  readonly last_event_at: string;
+  readonly event_count: number;
+}
+
+/** Session is `in_progress` iff its last event is within this freshness window of "now" (research.md §8). */
+const IN_PROGRESS_WINDOW_MS = 5 * 60 * 1000;
+
+function deriveSessionStatus(lastEventAt: string, now: Date): SessionStatus {
+  return now.getTime() - new Date(lastEventAt).getTime() < IN_PROGRESS_WINDOW_MS
+    ? "in_progress"
+    : "concluded";
+}
+
+/**
+ * Sessions rollup for `GET /api/sessions?range=` (contracts/api.md, User
+ * Story 5): each session's `eventCount` plus a `status` derived at query
+ * time from freshness of its `last_event_at` (research.md §8) — not stored,
+ * since there is no explicit "session ended" event in the transcript
+ * format. `since` scopes to sessions with activity at/after that timestamp
+ * (by `last_event_at`), or all sessions when `since` is `null` (the `all`
+ * range). `now` defaults to the real clock; a boundary function may pass an
+ * explicit value for deterministic testing.
+ */
+export function getSessionsRollup(
+  db: Database.Database,
+  since: string | null,
+  now: Date = new Date()
+): SessionListRow[] {
+  const rows = (
+    since === null
+      ? db
+          .prepare(
+            `SELECT s.session_id, s.project_path, s.started_at, s.last_event_at,
+                    COUNT(e.event_id) AS event_count
+             FROM sessions s
+             LEFT JOIN usage_events e ON e.session_id = s.session_id
+             GROUP BY s.session_id
+             ORDER BY s.last_event_at DESC`
+          )
+          .all()
+      : db
+          .prepare(
+            `SELECT s.session_id, s.project_path, s.started_at, s.last_event_at,
+                    COUNT(e.event_id) AS event_count
+             FROM sessions s
+             LEFT JOIN usage_events e ON e.session_id = s.session_id
+             WHERE s.last_event_at >= ?
+             GROUP BY s.session_id
+             ORDER BY s.last_event_at DESC`
+          )
+          .all(since)
+  ) as SessionRollupQueryRow[];
+
+  return rows.map(
+    (row): SessionListRow => ({
+      sessionId: row.session_id,
+      projectPath: row.project_path,
+      startedAt: row.started_at,
+      lastEventAt: row.last_event_at,
+      status: deriveSessionStatus(row.last_event_at, now),
+      eventCount: row.event_count,
+    })
+  );
+}
+
 export interface EventDetail {
   readonly eventId: string;
   readonly sessionId: string;

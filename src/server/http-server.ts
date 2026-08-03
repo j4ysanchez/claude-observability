@@ -5,6 +5,8 @@ import type Database from "better-sqlite3";
 import {
   handleEventDetail,
   handleEventsList,
+  handleSessionEvents,
+  handleSessionsList,
   handleStatus,
   handleSummary,
   handleTrend,
@@ -132,6 +134,31 @@ export function createDashboardHandler(config: DashboardHandlerConfig): RouteHan
       } else {
         sendJson(res, 200, detail);
       }
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/sessions") {
+      sendJson(
+        res,
+        200,
+        handleSessionsList(config.db, url.searchParams.get("range"), config.transcriptRoot)
+      );
+      return;
+    }
+
+    if (
+      req.method === "GET" &&
+      url.pathname.startsWith("/api/sessions/") &&
+      url.pathname.endsWith("/events")
+    ) {
+      const sessionId = decodeURIComponent(
+        url.pathname.slice("/api/sessions/".length, -"/events".length)
+      );
+      sendJson(
+        res,
+        200,
+        handleSessionEvents(config.db, sessionId, url.searchParams.get("page"), config.transcriptRoot)
+      );
       return;
     }
 

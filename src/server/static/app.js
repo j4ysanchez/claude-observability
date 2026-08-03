@@ -7,12 +7,20 @@
 // `eventsReturnView` remembers which breakdown tab ("breakdown" or
 // "subagent") opened the current event list, so "Back to breakdown" returns
 // to the tab the user actually came from (User Story 3).
+// `timelineSessionId` remembers which session's timeline is currently open
+// so the range selector / detail "back" button can re-fetch it without
+// re-navigating. `detailReturnView` records whether the open detail panel
+// was reached from the general events list ("events") or from a session
+// timeline ("timeline"), so its "back" button returns to the right place
+// (User Story 5).
 const state = {
   range: "today",
   view: "breakdown",
   eventsFilter: null,
   eventsReturnView: "breakdown",
   trendGranularity: "day",
+  timelineSessionId: null,
+  detailReturnView: "events",
 };
 const OUTCOMES = ["succeeded", "failed", "denied", "in_progress"];
 
@@ -46,6 +54,8 @@ function showView(view) {
   document.getElementById("tool-breakdown").hidden = view !== "breakdown";
   document.getElementById("subagent-breakdown").hidden = view !== "subagent";
   document.getElementById("trend-view").hidden = view !== "trend";
+  document.getElementById("session-list").hidden = view !== "sessions";
+  document.getElementById("session-timeline").hidden = view !== "timeline";
   document.getElementById("event-list").hidden = view !== "events";
   document.getElementById("event-detail").hidden = view !== "detail";
   state.view = view;
@@ -235,6 +245,128 @@ async function openTrendView() {
   showView("trend");
 }
 
+function sessionStatusBadge(status) {
+  const badge = document.createElement("span");
+  badge.className = `badge badge-session-${status}`;
+  badge.textContent = status === "in_progress" ? "in progress" : "concluded";
+  return badge;
+}
+
+// Renders the session list (User Story 5): each row's rollup stats
+// (eventCount, status derived per research.md §8) come from
+// GET /api/sessions?range=; clicking a row opens that session's ordered
+// tool sequence (openSessionTimeline below). Empty state mirrors the same
+// "no data" contract as the tool/subagent breakdowns (FR-010-style).
+function renderSessionsTable(sessions) {
+  const table = document.getElementById("session-table");
+  const tbody = document.getElementById("session-table-body");
+  const noData = document.getElementById("session-no-data-message");
+
+  tbody.replaceChildren();
+
+  if (sessions.length === 0) {
+    table.hidden = true;
+    noData.hidden = false;
+    return;
+  }
+
+  table.hidden = false;
+  noData.hidden = true;
+
+  for (const row of sessions) {
+    const tr = document.createElement("tr");
+    tr.classList.add("clickable-row");
+    tr.tabIndex = 0;
+
+    const projectCell = document.createElement("td");
+    projectCell.textContent = row.projectPath;
+
+    const startedCell = document.createElement("td");
+    startedCell.textContent = new Date(row.startedAt).toLocaleString();
+
+    const lastEventCell = document.createElement("td");
+    lastEventCell.textContent = new Date(row.lastEventAt).toLocaleString();
+
+    const statusCell = document.createElement("td");
+    statusCell.append(sessionStatusBadge(row.status));
+
+    const countCell = document.createElement("td");
+    countCell.textContent = String(row.eventCount);
+
+    tr.append(projectCell, startedCell, lastEventCell, statusCell, countCell);
+    tr.addEventListener("click", () => openSessionTimeline(row.sessionId).catch(handleRefreshError));
+    tbody.append(tr);
+  }
+}
+
+async function openSessionsView() {
+  const params = new URLSearchParams({ range: state.range });
+  const data = await fetchJson(`/api/sessions?${params.toString()}`);
+  renderSessionsTable(data.sessions);
+  showView("sessions");
+}
+
+// Renders one session's ordered tool/subagent invocation sequence (User
+// Story 5): rows come from GET /api/sessions/:sessionId/events, already
+// sorted by `sequence` ascending server-side — the `#` column makes that
+// chronological order explicit. Each row opens the same US2 detail view
+// used everywhere else (openEventDetail), tagged "timeline" so its "back"
+// button returns here rather than to the general events list.
+function renderTimelineTable(events) {
+  const table = document.getElementById("timeline-table");
+  const tbody = document.getElementById("timeline-table-body");
+  const empty = document.getElementById("timeline-empty");
+
+  tbody.replaceChildren();
+
+  if (events.length === 0) {
+    table.hidden = true;
+    empty.hidden = false;
+    return;
+  }
+
+  table.hidden = false;
+  empty.hidden = true;
+
+  for (const row of events) {
+    const tr = document.createElement("tr");
+    tr.classList.add("clickable-row");
+    tr.tabIndex = 0;
+
+    const seqCell = document.createElement("td");
+    seqCell.textContent = String(row.sequence);
+
+    const timeCell = document.createElement("td");
+    timeCell.textContent = new Date(row.timestamp).toLocaleString();
+
+    const toolCell = document.createElement("td");
+    toolCell.textContent = row.isSubagent ? `${row.toolName} (subagent)` : row.toolName;
+
+    const outcomeCell = document.createElement("td");
+    outcomeCell.append(outcomeBadge(row.outcome));
+
+    const reasoningCell = document.createElement("td");
+    reasoningCell.textContent = row.hasReasoning ? "Captured" : "Not captured";
+    reasoningCell.classList.toggle("muted", !row.hasReasoning);
+
+    const validationCell = document.createElement("td");
+    validationCell.textContent = row.hasValidation ? "Observed" : "—";
+    validationCell.classList.toggle("muted", !row.hasValidation);
+
+    tr.append(seqCell, timeCell, toolCell, outcomeCell, reasoningCell, validationCell);
+    tr.addEventListener("click", () => openEventDetail(row.eventId, "timeline").catch(handleRefreshError));
+    tbody.append(tr);
+  }
+}
+
+async function openSessionTimeline(sessionId) {
+  state.timelineSessionId = sessionId;
+  const data = await fetchJson(`/api/sessions/${encodeURIComponent(sessionId)}/events`);
+  document.getElementById("timeline-session-id").textContent = `Session: ${sessionId}`;
+  renderTimelineTable(data.events);
+  showView("timeline");
+}
+
 // Renders the filtered event list. Each row shows only the list-shape flags
 // from GET /api/events (hasReasoning/hasValidation) — full text is fetched
 // lazily via the detail endpoint when a row is opened, keeping list
@@ -362,8 +494,12 @@ function renderSubagentDetailFields(detail) {
   taskEl.textContent = detail.subagentTask === null ? "Not captured" : detail.subagentTask;
 }
 
-async function openEventDetail(eventId) {
+async function openEventDetail(eventId, returnView = "events") {
   const detail = await fetchJson(`/api/events/${encodeURIComponent(eventId)}`);
+
+  state.detailReturnView = returnView;
+  document.getElementById("back-to-events").textContent =
+    returnView === "timeline" ? "← Back to session timeline" : "← Back to invocations";
 
   document.getElementById("detail-tool").textContent = detail.isSubagent
     ? `${detail.toolName} (subagent)`
@@ -417,9 +553,14 @@ function init() {
         refresh().catch(handleRefreshError);
       } else if (state.view === "trend") {
         openTrendView().catch(handleRefreshError);
-      } else if (state.eventsFilter) {
+      } else if (state.view === "sessions") {
+        openSessionsView().catch(handleRefreshError);
+      } else if (state.view === "events" && state.eventsFilter) {
         openEventsView(state.eventsFilter).catch(handleRefreshError);
       }
+      // "timeline"/"detail" views are scoped to one session/event, not the
+      // global range, so a range change while viewing either is a no-op
+      // until the user navigates back.
     });
   }
 
@@ -428,6 +569,8 @@ function init() {
       setActiveTab(btn.dataset.view);
       if (btn.dataset.view === "trend") {
         openTrendView().catch(handleRefreshError);
+      } else if (btn.dataset.view === "sessions") {
+        openSessionsView().catch(handleRefreshError);
       } else {
         showView(btn.dataset.view);
       }
@@ -451,12 +594,19 @@ function init() {
   });
 
   document.getElementById("back-to-events").addEventListener("click", () => {
-    if (state.eventsFilter) {
+    if (state.detailReturnView === "timeline" && state.timelineSessionId) {
+      openSessionTimeline(state.timelineSessionId).catch(handleRefreshError);
+    } else if (state.eventsFilter) {
       openEventsView(state.eventsFilter).catch(handleRefreshError);
     } else {
       setActiveTab(state.eventsReturnView);
       showView(state.eventsReturnView);
     }
+  });
+
+  document.getElementById("back-to-sessions").addEventListener("click", () => {
+    setActiveTab("sessions");
+    openSessionsView().catch(handleRefreshError);
   });
 
   refresh().catch(handleRefreshError);

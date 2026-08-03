@@ -241,6 +241,14 @@ h2 {
   background: var(--in-progress);
 }
 
+.badge-session-in_progress {
+  background: var(--accent);
+}
+
+.badge-session-concluded {
+  background: var(--muted);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

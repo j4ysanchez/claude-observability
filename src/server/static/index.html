@@ -30,6 +30,9 @@
         <button type="button" class="tab-btn" data-view="trend" role="tab" aria-selected="false">
           Trend
         </button>
+        <button type="button" class="tab-btn" data-view="sessions" role="tab" aria-selected="false">
+          Sessions
+        </button>
       </nav>
 
       <section id="tool-breakdown" aria-labelledby="tool-breakdown-heading">
@@ -100,6 +103,54 @@
         <p class="hint">
           Bar length is each period's total tool + subagent invocations; periods with no
           activity are shown as an empty bar rather than omitted.
+        </p>
+      </section>
+
+      <section id="session-list" aria-labelledby="session-list-heading" hidden>
+        <h2 id="session-list-heading">Sessions</h2>
+
+        <table id="session-table">
+          <thead>
+            <tr>
+              <th scope="col">Project</th>
+              <th scope="col">Started</th>
+              <th scope="col">Last event</th>
+              <th scope="col">Status</th>
+              <th scope="col">Invocations</th>
+            </tr>
+          </thead>
+          <tbody id="session-table-body"></tbody>
+        </table>
+
+        <p id="session-no-data-message" class="no-data-message" hidden>
+          No sessions recorded for this range yet.
+        </p>
+        <p class="hint">Click a session to see its ordered tool sequence.</p>
+      </section>
+
+      <section id="session-timeline" aria-labelledby="session-timeline-heading" hidden>
+        <div class="section-heading-row">
+          <button type="button" id="back-to-sessions" class="link-btn">&larr; Back to sessions</button>
+          <h2 id="session-timeline-heading">Session timeline</h2>
+        </div>
+        <p id="timeline-session-id" class="hint"></p>
+
+        <table id="timeline-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Time</th>
+              <th scope="col">Tool</th>
+              <th scope="col">Outcome</th>
+              <th scope="col">Reasoning</th>
+              <th scope="col">Validation</th>
+            </tr>
+          </thead>
+          <tbody id="timeline-table-body"></tbody>
+        </table>
+
+        <p id="timeline-empty" class="no-data-message" hidden>
+          No invocations recorded for this session.
         </p>
       </section>
 

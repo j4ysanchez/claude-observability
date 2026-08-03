@@ -303,21 +303,21 @@ into its detail view.
 
 ### Tests for User Story 5
 
-- [ ] T053 [P] [US5] Integration test for `GET /api/sessions?range=` and
+- [X] T053 [P] [US5] Integration test for `GET /api/sessions?range=` and
       `GET /api/sessions/:sessionId/events` (chronological `sequence` order, `status`
       derived per research.md §8) in `tests/integration/api-sessions.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T054 [US5] Implement a sessions rollup query in `src/storage/repository.ts`: list
+- [X] T054 [US5] Implement a sessions rollup query in `src/storage/repository.ts`: list
       sessions with `eventCount` and derived `status` (`in_progress` iff `now -
       lastEventAt < 5 minutes`, else `concluded`) (depends on T011, T025)
-- [ ] T055 [US5] Implement `GET /api/sessions?range=` in `src/server/routes.ts` per
+- [X] T055 [US5] Implement `GET /api/sessions?range=` in `src/server/routes.ts` per
       contracts/api.md (depends on T054)
-- [ ] T056 [US5] Implement `GET /api/sessions/:sessionId/events` in
+- [X] T056 [US5] Implement `GET /api/sessions/:sessionId/events` in
       `src/server/routes.ts`: same row shape as `GET /api/events`, filtered to the
       session, sorted by `sequence` ascending (depends on T037)
-- [ ] T057 [US5] Build the session list + chronological timeline view in
+- [X] T057 [US5] Build the session list + chronological timeline view in
       `src/server/static/`: session list → ordered event sequence → opens into the US2
       detail view for any entry (depends on T055, T056, T039)
 
