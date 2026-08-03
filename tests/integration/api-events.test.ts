@@ -166,6 +166,55 @@ describe("GET /api/events", () => {
     expect(editRow.hasValidation).toBe(true);
     expect(editRow.reasoning).toBeUndefined();
     expect(editRow.inputSummary).toBeUndefined();
+    expect(editRow.inputPreview).toContain("redact.ts");
+  });
+
+  it("truncates inputPreview to 80 characters for a long input, unlike the detail endpoint's full inputSummary", async () => {
+    const longString = "x".repeat(500);
+    writeLines("sess-events-long-input", [
+      {
+        type: "assistant",
+        sessionId: "sess-events-long-input",
+        timestamp: new Date().toISOString(),
+        cwd: "/Users/dev/project",
+        gitBranch: "main",
+        uuid: "sess-events-long-input-a1",
+        parentUuid: null,
+        message: {
+          role: "assistant",
+          content: [
+            {
+              type: "tool_use",
+              id: "sess-events-long-input-write",
+              name: "Write",
+              input: { file_path: "notes.md", content: longString },
+            },
+          ],
+        },
+      },
+      {
+        type: "user",
+        sessionId: "sess-events-long-input",
+        timestamp: new Date().toISOString(),
+        cwd: "/Users/dev/project",
+        gitBranch: "main",
+        uuid: "sess-events-long-input-a2",
+        parentUuid: "sess-events-long-input-a1",
+        message: {
+          role: "user",
+          content: [
+            { type: "tool_result", tool_use_id: "sess-events-long-input-write", content: "File written." },
+          ],
+        },
+      },
+    ]);
+
+    const res = await fetch(`${baseUrl}/api/events?sessionId=sess-events-long-input`);
+    const body = await res.json();
+
+    expect(body.events).toHaveLength(1);
+    expect(body.events[0].inputPreview.length).toBe(81);
+    expect(body.events[0].inputPreview.endsWith("…")).toBe(true);
   });
 
   it("filters by tool name", async () => {

@@ -215,6 +215,16 @@ export interface EventListRow {
    * list rows carry just enough to render + navigate.
    */
   readonly hasValidation: boolean;
+  /**
+   * A short, truncated preview of `inputSummary` (e.g. the bash command or
+   * file path a tool acted on) so a list row hints at *what* the tool did
+   * without requiring a click into the detail endpoint. Deliberately capped
+   * at `INPUT_PREVIEW_MAX_LENGTH` — the untruncated `inputSummary` (which
+   * can be arbitrarily long, e.g. a large Edit's old_string/new_string)
+   * stays detail-endpoint-only, preserving the "list payloads stay small"
+   * contract (contracts/api.md).
+   */
+  readonly inputPreview: string | null;
 }
 
 export interface EventsPage {
@@ -337,7 +347,20 @@ interface EventListQueryRow {
   readonly is_subagent: number;
   readonly outcome: Outcome;
   readonly reasoning: string | null;
+  readonly input_summary: string | null;
   readonly validation_result: ValidationResult | null;
+}
+
+const INPUT_PREVIEW_MAX_LENGTH = 80;
+
+/** Truncates `inputSummary` down to a list-row-safe preview (see `EventListRow.inputPreview`). */
+function toInputPreview(inputSummary: string | null): string | null {
+  if (inputSummary === null) {
+    return null;
+  }
+  return inputSummary.length > INPUT_PREVIEW_MAX_LENGTH
+    ? `${inputSummary.slice(0, INPUT_PREVIEW_MAX_LENGTH)}…`
+    : inputSummary;
 }
 
 /**
@@ -383,7 +406,7 @@ export function getEventsPage(db: Database.Database, query: EventsQuery): Events
   const rows = db
     .prepare(
       `SELECT e.event_id, e.session_id, e.sequence, e.timestamp, e.tool_name, e.is_subagent,
-              e.outcome, e.reasoning, v.result AS validation_result
+              e.outcome, e.reasoning, e.input_summary, v.result AS validation_result
        FROM usage_events e
        LEFT JOIN validation_checks v ON v.usage_event_id = e.event_id
        ${whereClause}
@@ -403,6 +426,7 @@ export function getEventsPage(db: Database.Database, query: EventsQuery): Events
       outcome: row.outcome,
       hasReasoning: row.reasoning !== null,
       hasValidation: row.validation_result === "confirmed" || row.validation_result === "mismatch_corrected",
+      inputPreview: toInputPreview(row.input_summary),
     })
   );
 

@@ -303,6 +303,15 @@ th {
   color: var(--muted);
 }
 
+.summary-cell {
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: max-content 1fr;

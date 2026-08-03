@@ -50,6 +50,24 @@ function outcomeBadge(outcome) {
   return badge;
 }
 
+// Renders the list-row "Summary" column from `inputPreview` (the truncated
+// input the tool acted on, e.g. a bash command or file path) so what a tool
+// was used *for* is visible at a glance, without opening the detail view for
+// every row. `title` carries the same preview text for hover access when the
+// cell itself is clipped by CSS.
+function renderSummaryCell(inputPreview) {
+  const cell = document.createElement("td");
+  cell.classList.add("summary-cell");
+  if (inputPreview === null) {
+    cell.textContent = "Not captured";
+    cell.classList.add("muted");
+  } else {
+    cell.textContent = inputPreview;
+    cell.title = inputPreview;
+  }
+  return cell;
+}
+
 function showView(view) {
   document.getElementById("tool-breakdown").hidden = view !== "breakdown";
   document.getElementById("subagent-breakdown").hidden = view !== "subagent";
@@ -342,6 +360,8 @@ function renderTimelineTable(events) {
     const toolCell = document.createElement("td");
     toolCell.textContent = row.isSubagent ? `${row.toolName} (subagent)` : row.toolName;
 
+    const summaryCell = renderSummaryCell(row.inputPreview);
+
     const outcomeCell = document.createElement("td");
     outcomeCell.append(outcomeBadge(row.outcome));
 
@@ -353,7 +373,7 @@ function renderTimelineTable(events) {
     validationCell.textContent = row.hasValidation ? "Observed" : "—";
     validationCell.classList.toggle("muted", !row.hasValidation);
 
-    tr.append(seqCell, timeCell, toolCell, outcomeCell, reasoningCell, validationCell);
+    tr.append(seqCell, timeCell, toolCell, summaryCell, outcomeCell, reasoningCell, validationCell);
     tr.addEventListener("click", () => openEventDetail(row.eventId, "timeline").catch(handleRefreshError));
     tbody.append(tr);
   }
@@ -398,6 +418,8 @@ function renderEventTable(events) {
     const toolCell = document.createElement("td");
     toolCell.textContent = row.isSubagent ? `${row.toolName} (subagent)` : row.toolName;
 
+    const summaryCell = renderSummaryCell(row.inputPreview);
+
     const outcomeCell = document.createElement("td");
     outcomeCell.append(outcomeBadge(row.outcome));
 
@@ -409,7 +431,7 @@ function renderEventTable(events) {
     validationCell.textContent = row.hasValidation ? "Observed" : "—";
     validationCell.classList.toggle("muted", !row.hasValidation);
 
-    tr.append(timeCell, toolCell, outcomeCell, reasoningCell, validationCell);
+    tr.append(timeCell, toolCell, summaryCell, outcomeCell, reasoningCell, validationCell);
     tr.addEventListener("click", () => openEventDetail(row.eventId).catch(handleRefreshError));
     tbody.append(tr);
   }

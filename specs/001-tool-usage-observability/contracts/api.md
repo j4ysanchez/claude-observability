@@ -86,14 +86,17 @@ additionally sorts by `sequence` (session drill-down, User Story 5).
       "isSubagent": false,
       "outcome": "succeeded",
       "hasReasoning": true,
-      "hasValidation": true
+      "hasValidation": true,
+      "inputPreview": "{\"file_path\":\"src/core/redact.ts\",\"old_string\":\"OLD…"
     }
   ]
 }
 ```
 List responses include only enough to render a row + navigate to detail; full
 reasoning/input/validation text is fetched via the detail endpoint below to keep list
-payloads small.
+payloads small. `inputPreview` is `inputSummary` truncated to 80 characters (`null` when
+no input was captured) — enough to show what a tool acted on (e.g. a bash command or file
+path) directly in the list, without the unbounded full text.
 
 ## GET /api/events/:eventId
 
