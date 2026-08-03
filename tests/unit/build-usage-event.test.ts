@@ -50,13 +50,24 @@ describe("buildUsageEvents", () => {
     expect(buildUsageEvents(assistantLineOnly)[0].outcome).toBe("in_progress");
   });
 
-  it("leaves reasoning/inputSummary/subagentType/subagentTask null for now (US2/US3 not yet built), never fabricating or leaking raw input text", () => {
+  it("populates reasoning and inputSummary via extract-context.ts (US2), never fabricating text", () => {
     const [event] = buildUsageEvents(loadLines("tool-success.jsonl"));
 
-    expect(event.reasoning).toBeNull();
-    expect(event.inputSummary).toBeNull();
+    expect(event.reasoning).toBe("Let me check the current config file.");
+    expect(event.inputSummary).toBe(JSON.stringify({ file_path: "/Users/dev/project/config.json" }));
+  });
+
+  it("leaves subagentType/subagentTask null for now (US3 not yet built)", () => {
+    const [event] = buildUsageEvents(loadLines("tool-success.jsonl"));
+
     expect(event.subagentType).toBeNull();
     expect(event.subagentTask).toBeNull();
+  });
+
+  it("returns reasoning: null when a tool_use has no preceding text/thinking block, never fabricating one", () => {
+    const [event] = buildUsageEvents(loadLines("no-reasoning.jsonl"));
+
+    expect(event.reasoning).toBeNull();
   });
 
   it("continues sequence numbering from a supplied startSequence across syncs", () => {

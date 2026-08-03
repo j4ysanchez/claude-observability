@@ -44,6 +44,55 @@
         <p id="no-data-message" class="no-data-message" hidden>
           No tool usage recorded for this range yet.
         </p>
+        <p class="hint">Click a row to see the individual invocations.</p>
+      </section>
+
+      <section id="event-list" aria-labelledby="event-list-heading" hidden>
+        <div class="section-heading-row">
+          <button type="button" id="back-to-breakdown" class="link-btn">&larr; Back to breakdown</button>
+          <h2 id="event-list-heading">Invocations</h2>
+        </div>
+
+        <table id="event-table">
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Tool</th>
+              <th scope="col">Outcome</th>
+              <th scope="col">Reasoning</th>
+              <th scope="col">Validation</th>
+            </tr>
+          </thead>
+          <tbody id="event-table-body"></tbody>
+        </table>
+
+        <p id="event-list-empty" class="no-data-message" hidden>
+          No invocations match this filter.
+        </p>
+      </section>
+
+      <section id="event-detail" aria-labelledby="event-detail-heading" hidden>
+        <div class="section-heading-row">
+          <button type="button" id="back-to-events" class="link-btn">&larr; Back to invocations</button>
+          <h2 id="event-detail-heading">Invocation detail</h2>
+        </div>
+
+        <dl class="detail-grid">
+          <dt>Tool</dt>
+          <dd id="detail-tool"></dd>
+
+          <dt>Outcome</dt>
+          <dd id="detail-outcome"></dd>
+
+          <dt>Why (reasoning)</dt>
+          <dd id="detail-reasoning"></dd>
+
+          <dt>How (input)</dt>
+          <dd><pre id="detail-input"></pre></dd>
+
+          <dt>Validation</dt>
+          <dd id="detail-validation"></dd>
+        </dl>
       </section>
     </main>
 

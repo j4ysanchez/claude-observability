@@ -4,7 +4,15 @@ import { byTool, type ToolCount } from "../core/summarize.js";
 import type { Outcome } from "../core/types.js";
 import { defaultTranscriptRoot } from "../ingest/discover-transcripts.js";
 import { syncTranscripts } from "../ingest/sync.js";
-import { countSessions, getLastIngestAt, getUsageEventsSince } from "../storage/repository.js";
+import {
+  countSessions,
+  getEventDetail,
+  getEventsPage,
+  getLastIngestAt,
+  getUsageEventsSince,
+  type EventDetail,
+  type EventsPage,
+} from "../storage/repository.js";
 
 export type RangeParam = "today" | "7d" | "30d" | "all";
 
@@ -105,4 +113,56 @@ export function handleSummary(
     byTool: byTool(events),
     bySubagent: [],
   };
+}
+
+export interface EventsListParams {
+  readonly range: string | null;
+  readonly tool: string | null;
+  readonly subagentType: string | null;
+  readonly sessionId: string | null;
+  readonly page: string | null;
+}
+
+function parsePageParam(value: string | null): number {
+  if (value === null) {
+    return 1;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+/**
+ * GET /api/events?range=&tool=&subagentType=&sessionId=&page= (FR-008,
+ * contracts/api.md): paginated UsageEvent list rows for drill-down, all
+ * filters optional and combinable.
+ */
+export function handleEventsList(
+  db: Database.Database,
+  params: EventsListParams,
+  transcriptRoot?: string
+): EventsPage {
+  syncTranscripts(db, transcriptRoot);
+
+  const since = rangeSince(parseRange(params.range));
+  return getEventsPage(db, {
+    since,
+    tool: params.tool,
+    subagentType: params.subagentType,
+    sessionId: params.sessionId,
+    page: parsePageParam(params.page),
+  });
+}
+
+/**
+ * GET /api/events/:eventId (FR-015, contracts/api.md): full why/how/
+ * validation detail for one invocation. `null` when the event doesn't
+ * exist — the caller (http-server.ts) maps that to a 404.
+ */
+export function handleEventDetail(
+  db: Database.Database,
+  eventId: string,
+  transcriptRoot?: string
+): EventDetail | null {
+  syncTranscripts(db, transcriptRoot);
+  return getEventDetail(db, eventId);
 }

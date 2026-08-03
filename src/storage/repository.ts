@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { Outcome, Session, UsageEvent } from "../core/types.js";
+import type { Outcome, Session, UsageEvent, ValidationCheck, ValidationResult } from "../core/types.js";
 import { applySchema } from "./schema.js";
 
 export function defaultDbPath(): string {
@@ -180,4 +180,194 @@ export function getLastIngestAt(db: Database.Database): string | null {
     .prepare(`SELECT MAX(last_ingested_at) AS lastIngestAt FROM ingest_cursors`)
     .get() as { lastIngestAt: string | null };
   return row.lastIngestAt;
+}
+
+/**
+ * Inserts a ValidationCheck, or updates the existing row for the same
+ * `usageEventId` (idempotent re-ingest — `idx_validation_event` enforces at
+ * most one row per event, matching data-model.md's "zero or one" rule).
+ */
+export function upsertValidationCheck(db: Database.Database, check: ValidationCheck): void {
+  db.prepare(
+    `INSERT INTO validation_checks (usage_event_id, checked_what, result)
+     VALUES (@usageEventId, @checkedWhat, @result)
+     ON CONFLICT(usage_event_id) DO UPDATE SET
+       checked_what = excluded.checked_what,
+       result = excluded.result`
+  ).run(check);
+}
+
+export interface EventListRow {
+  readonly eventId: string;
+  readonly sessionId: string;
+  readonly sequence: number;
+  readonly timestamp: string;
+  readonly toolName: string;
+  readonly isSubagent: boolean;
+  readonly outcome: Outcome;
+  /** `true` iff a non-null `reasoning` was captured for this event (FR-012). */
+  readonly hasReasoning: boolean;
+  /**
+   * `true` iff an actually-observed validation was detected (`confirmed` or
+   * `mismatch_corrected`) — a coarse list-row indicator only; the full
+   * four-way distinction (including `not_observed`/`not_applicable`) is
+   * only surfaced by the detail endpoint, per contracts/api.md's note that
+   * list rows carry just enough to render + navigate.
+   */
+  readonly hasValidation: boolean;
+}
+
+export interface EventsPage {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly events: EventListRow[];
+}
+
+export interface EventsQuery {
+  readonly since: string | null;
+  readonly tool: string | null;
+  readonly subagentType: string | null;
+  readonly sessionId: string | null;
+  readonly page: number;
+}
+
+export interface EventDetail {
+  readonly eventId: string;
+  readonly sessionId: string;
+  readonly timestamp: string;
+  readonly toolName: string;
+  readonly isSubagent: boolean;
+  readonly subagentType: string | null;
+  readonly subagentTask: string | null;
+  readonly outcome: Outcome;
+  readonly reasoning: string | null;
+  readonly inputSummary: string | null;
+  readonly validation: { readonly checkedWhat: string; readonly result: ValidationResult } | null;
+}
+
+const EVENTS_PAGE_SIZE = 50;
+
+interface EventListQueryRow {
+  readonly event_id: string;
+  readonly session_id: string;
+  readonly sequence: number;
+  readonly timestamp: string;
+  readonly tool_name: string;
+  readonly is_subagent: number;
+  readonly outcome: Outcome;
+  readonly reasoning: string | null;
+  readonly validation_result: ValidationResult | null;
+}
+
+/**
+ * Paginated `usage_events` list for drill-down (FR-008, contracts/api.md
+ * `GET /api/events`), filterable by tool/subagentType/sessionId (all
+ * optional, combinable). `sessionId` additionally sorts by `sequence`
+ * ascending (session timeline order); otherwise most-recent-first.
+ */
+export function getEventsPage(db: Database.Database, query: EventsQuery): EventsPage {
+  const conditions: string[] = [];
+  const params: Record<string, unknown> = {};
+
+  if (query.since !== null) {
+    conditions.push("e.timestamp >= @since");
+    params.since = query.since;
+  }
+  if (query.tool !== null) {
+    conditions.push("e.tool_name = @tool");
+    params.tool = query.tool;
+  }
+  if (query.subagentType !== null) {
+    conditions.push("e.subagent_type = @subagentType");
+    params.subagentType = query.subagentType;
+  }
+  if (query.sessionId !== null) {
+    conditions.push("e.session_id = @sessionId");
+    params.sessionId = query.sessionId;
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const orderClause =
+    query.sessionId !== null ? "ORDER BY e.sequence ASC" : "ORDER BY e.timestamp DESC, e.sequence DESC";
+
+  const total = (
+    db.prepare(`SELECT COUNT(*) AS count FROM usage_events e ${whereClause}`).get(params) as {
+      count: number;
+    }
+  ).count;
+
+  const page = query.page < 1 ? 1 : query.page;
+  const offset = (page - 1) * EVENTS_PAGE_SIZE;
+
+  const rows = db
+    .prepare(
+      `SELECT e.event_id, e.session_id, e.sequence, e.timestamp, e.tool_name, e.is_subagent,
+              e.outcome, e.reasoning, v.result AS validation_result
+       FROM usage_events e
+       LEFT JOIN validation_checks v ON v.usage_event_id = e.event_id
+       ${whereClause}
+       ${orderClause}
+       LIMIT @limit OFFSET @offset`
+    )
+    .all({ ...params, limit: EVENTS_PAGE_SIZE, offset }) as EventListQueryRow[];
+
+  const events = rows.map(
+    (row): EventListRow => ({
+      eventId: row.event_id,
+      sessionId: row.session_id,
+      sequence: row.sequence,
+      timestamp: row.timestamp,
+      toolName: row.tool_name,
+      isSubagent: row.is_subagent === 1,
+      outcome: row.outcome,
+      hasReasoning: row.reasoning !== null,
+      hasValidation: row.validation_result === "confirmed" || row.validation_result === "mismatch_corrected",
+    })
+  );
+
+  return { page, pageSize: EVENTS_PAGE_SIZE, total, events };
+}
+
+/**
+ * Full detail for one invocation — why/how/validation together (FR-015,
+ * contracts/api.md `GET /api/events/:eventId`). `null` when no event with
+ * this id exists. `validation` is `null` only when no ValidationCheck row
+ * was ever written for this event (should not happen for events produced by
+ * the current pipeline, which always emits one of the four result states —
+ * see build-usage-event.ts); when present, its own `result` field
+ * distinguishes `not_applicable`/`not_observed` from an actual check.
+ */
+export function getEventDetail(db: Database.Database, eventId: string): EventDetail | null {
+  const row = db
+    .prepare(
+      `SELECT e.*, v.checked_what AS validation_checked_what, v.result AS validation_result
+       FROM usage_events e
+       LEFT JOIN validation_checks v ON v.usage_event_id = e.event_id
+       WHERE e.event_id = ?`
+    )
+    .get(eventId) as
+    | (UsageEventRow & { validation_checked_what: string | null; validation_result: ValidationResult | null })
+    | undefined;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    eventId: row.event_id,
+    sessionId: row.session_id,
+    timestamp: row.timestamp,
+    toolName: row.tool_name,
+    isSubagent: row.is_subagent === 1,
+    subagentType: row.subagent_type,
+    subagentTask: row.subagent_task,
+    outcome: row.outcome,
+    reasoning: row.reasoning,
+    inputSummary: row.input_summary,
+    validation:
+      row.validation_result !== null
+        ? { checkedWhat: row.validation_checked_what ?? "", result: row.validation_result }
+        : null,
+  };
 }

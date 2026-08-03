@@ -2,7 +2,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize } from "node:path";
 import type Database from "better-sqlite3";
-import { handleStatus, handleSummary } from "./routes.js";
+import { handleEventDetail, handleEventsList, handleStatus, handleSummary } from "./routes.js";
 
 export type RouteHandler = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
@@ -82,6 +82,36 @@ export function createDashboardHandler(config: DashboardHandlerConfig): RouteHan
         200,
         handleSummary(config.db, url.searchParams.get("range"), config.transcriptRoot)
       );
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/events") {
+      sendJson(
+        res,
+        200,
+        handleEventsList(
+          config.db,
+          {
+            range: url.searchParams.get("range"),
+            tool: url.searchParams.get("tool"),
+            subagentType: url.searchParams.get("subagentType"),
+            sessionId: url.searchParams.get("sessionId"),
+            page: url.searchParams.get("page"),
+          },
+          config.transcriptRoot
+        )
+      );
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/api/events/")) {
+      const eventId = decodeURIComponent(url.pathname.slice("/api/events/".length));
+      const detail = handleEventDetail(config.db, eventId, config.transcriptRoot);
+      if (detail === null) {
+        sendJson(res, 404, { error: "Not found" });
+      } else {
+        sendJson(res, 200, detail);
+      }
       return;
     }
 

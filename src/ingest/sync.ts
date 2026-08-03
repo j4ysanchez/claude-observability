@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import { buildUsageEvents } from "../core/build-usage-event.js";
+import { buildUsageEventsWithValidation } from "../core/build-usage-event.js";
 import { parseTranscriptLine } from "../core/parse-transcript.js";
 import type { RawTranscriptLine } from "../core/types.js";
 import {
@@ -8,6 +8,7 @@ import {
   setCursor,
   upsertSession,
   upsertUsageEvent,
+  upsertValidationCheck,
 } from "../storage/repository.js";
 import { discoverTranscripts } from "./discover-transcripts.js";
 import { readNewLines } from "./incremental-reader.js";
@@ -51,9 +52,12 @@ export function syncTranscripts(db: Database.Database, transcriptRoot?: string):
       });
 
       const startSequence = getMaxSequence(db, sessionId);
-      const events = buildUsageEvents(parsedLines, startSequence);
+      const { events, validationChecks } = buildUsageEventsWithValidation(parsedLines, startSequence);
       for (const event of events) {
         upsertUsageEvent(db, event);
+      }
+      for (const validationCheck of validationChecks) {
+        upsertValidationCheck(db, validationCheck);
       }
     }
 

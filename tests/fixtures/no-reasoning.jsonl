@@ -1,0 +1,2 @@
+{"type":"assistant","sessionId":"fixture-session-6","timestamp":"2026-08-01T15:00:00.000Z","cwd":"/Users/dev/project","gitBranch":"main","uuid":"f1","parentUuid":null,"message":{"role":"assistant","content":[{"type":"tool_use","id":"tool_6","name":"Bash","input":{"command":"ls -la"}}]}}
+{"type":"user","sessionId":"fixture-session-6","timestamp":"2026-08-01T15:00:01.000Z","cwd":"/Users/dev/project","gitBranch":"main","uuid":"f2","parentUuid":"f1","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"tool_6","content":"total 0"}]}}

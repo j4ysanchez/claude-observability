@@ -81,3 +81,23 @@ export interface UsageEvent {
   readonly inputSummary: string | null;
   readonly projectPath: string;
 }
+
+export type ValidationResult =
+  | "confirmed"
+  | "mismatch_corrected"
+  | "not_observed"
+  | "not_applicable";
+
+/**
+ * An agent-performed follow-up action confirming or contradicting a
+ * UsageEvent's expected result (research.md §6, FR-014/FR-016). Zero or one
+ * per UsageEvent in storage terms, but the pure core always produces one of
+ * the four `result` states for every event it processes — "nothing to
+ * report" is itself a state (`not_observed`/`not_applicable`), never a
+ * missing row the client has to guess about.
+ */
+export interface ValidationCheck {
+  readonly usageEventId: string;
+  readonly checkedWhat: string;
+  readonly result: ValidationResult;
+}

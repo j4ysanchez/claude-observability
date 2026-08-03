@@ -181,37 +181,37 @@ invocation, with missing data shown as "not available" rather than fabricated.
 
 ### Tests for User Story 2
 
-- [ ] T031 [P] [US2] Add fixtures to `tests/fixtures/`: a message with preceding
+- [X] T031 [P] [US2] Add fixtures to `tests/fixtures/`: a message with preceding
       reasoning text before a `tool_use`, a message with no preceding text, an
       `Edit`-then-`Read`-of-same-file validation sequence (confirmed), an edit followed by
       corrected re-work (mismatch_corrected), and a read-only tool call (not_applicable)
-- [ ] T032 [P] [US2] Unit test for `extract-context.ts` covering reasoning capture
+- [X] T032 [P] [US2] Unit test for `extract-context.ts` covering reasoning capture
       (FR-012), input serialization (FR-013), and all four validation-check outcomes
       (FR-014/FR-016) in `tests/unit/extract-context.test.ts` (depends on T031)
-- [ ] T033 [P] [US2] Integration test for `GET /api/events` and `GET /api/events/:eventId`
+- [X] T033 [P] [US2] Integration test for `GET /api/events` and `GET /api/events/:eventId`
       (including a `reasoning: null` and a `validation.result: not_applicable` case) in
       `tests/integration/api-events.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T034 [US2] Implement `extract-context.ts` in `src/core/extract-context.ts`:
+- [X] T034 [US2] Implement `extract-context.ts` in `src/core/extract-context.ts`:
       backward-walk preceding `text`/`thinking` blocks for reasoning (null if none),
       serialize `tool_use.input` for the input summary, and the validation-check
       heuristic (confirmed/mismatch_corrected/not_observed/not_applicable) per
       research.md §4–§6 (depends on T008)
-- [ ] T035 [US2] Wire `extract-context.ts` into `build-usage-event.ts`: populate
+- [X] T035 [US2] Wire `extract-context.ts` into `build-usage-event.ts`: populate
       `reasoning` and `inputSummary`, and emit an associated `ValidationCheck` when
       detected, in `src/core/build-usage-event.ts` (depends on T023, T034)
-- [ ] T036 [US2] Implement `validation_checks` write and an event-detail query (joins
+- [X] T036 [US2] Implement `validation_checks` write and an event-detail query (joins
       `usage_events` + `validation_checks` by `event_id`) in `src/storage/repository.ts`
       (depends on T025, T035)
-- [ ] T037 [US2] Implement `GET /api/events?range=&tool=&subagentType=&sessionId=&page=`
+- [X] T037 [US2] Implement `GET /api/events?range=&tool=&subagentType=&sessionId=&page=`
       in `src/server/routes.ts`: paginated list rows with `hasReasoning`/`hasValidation`
       flags per contracts/api.md (depends on T036)
-- [ ] T038 [US2] Implement `GET /api/events/:eventId` in `src/server/routes.ts`: full
+- [X] T038 [US2] Implement `GET /api/events/:eventId` in `src/server/routes.ts`: full
       detail with `reasoning`, `inputSummary`, and `validation` (or `null`) per
       contracts/api.md (depends on T036)
-- [ ] T039 [US2] Build the event list + detail drill-down view in `src/server/static/`:
+- [X] T039 [US2] Build the event list + detail drill-down view in `src/server/static/`:
       clicking a breakdown row opens a filtered event list; clicking an event opens a
       detail panel rendering why/how/validation, visibly distinguishing "not captured"
       from "not applicable" (FR-016) (depends on T037, T038, T030)
