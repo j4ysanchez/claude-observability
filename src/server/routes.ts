@@ -1,6 +1,15 @@
 import { existsSync } from "node:fs";
 import type Database from "better-sqlite3";
-import { bySubagent, byTool, type SubagentCount, type ToolCount } from "../core/summarize.js";
+import {
+  bySubagent,
+  byTool,
+  trend,
+  type Granularity,
+  type SubagentCount,
+  type ToolCount,
+  type TrendBucket,
+} from "../core/summarize.js";
+import type { UsageEvent } from "../core/types.js";
 import { defaultTranscriptRoot } from "../ingest/discover-transcripts.js";
 import { syncTranscripts } from "../ingest/sync.js";
 import {
@@ -41,6 +50,25 @@ export function rangeSince(range: RangeParam, now: Date = new Date()): string | 
     case "all":
       return null;
   }
+}
+
+const GRANULARITY_VALUES: ReadonlySet<string> = new Set(["day", "week"]);
+
+function isGranularity(value: string | null): value is Granularity {
+  return value !== null && GRANULARITY_VALUES.has(value);
+}
+
+/** Parses the `granularity` query param, defaulting to `day` when missing/invalid (FR-007). */
+export function parseGranularity(value: string | null): Granularity {
+  return isGranularity(value) ? value : "day";
+}
+
+/** The earliest event timestamp in a set, or `null` when empty. */
+function earliestTimestamp(events: readonly UsageEvent[]): string | null {
+  return events.reduce<string | null>(
+    (earliest, event) => (earliest === null || event.timestamp < earliest ? event.timestamp : earliest),
+    null
+  );
 }
 
 export interface StatusResponse {
@@ -106,6 +134,48 @@ export function handleSummary(
     generatedAt: new Date().toISOString(),
     byTool: byTool(events),
     bySubagent: bySubagent(events),
+  };
+}
+
+export interface TrendResponse {
+  readonly range: RangeParam;
+  readonly granularity: Granularity;
+  readonly buckets: ReadonlyArray<TrendBucket>;
+}
+
+/**
+ * GET /api/trend?range=&granularity= (contracts/api.md, FR-007, User Story
+ * 4): date-bucketed tool/subagent counts for the range, one bucket per
+ * day/week including zero-activity buckets. `since`/`until` are resolved
+ * here (the HTTP boundary, which is allowed to read the clock) and handed to
+ * the pure `trend()` core function as explicit ISO bounds. For `range=all`
+ * (no fixed lower bound), the bucket range starts at the earliest ingested
+ * event rather than an arbitrary epoch; with zero events at all, it falls
+ * back to a single bucket for "now" so the response is still one well-formed
+ * bucket, not an empty array (same "always shown as zero" contract as
+ * byTool/bySubagent).
+ */
+export function handleTrend(
+  db: Database.Database,
+  rangeParam: string | null,
+  granularityParam: string | null,
+  transcriptRoot?: string
+): TrendResponse {
+  syncTranscripts(db, transcriptRoot);
+
+  const range = parseRange(rangeParam);
+  const granularity = parseGranularity(granularityParam);
+  const now = new Date();
+  const sinceBound = rangeSince(range, now);
+  const events = getUsageEventsSince(db, sinceBound);
+
+  const until = now.toISOString();
+  const since = sinceBound ?? earliestTimestamp(events) ?? until;
+
+  return {
+    range,
+    granularity,
+    buckets: trend(events, since, until, granularity),
   };
 }
 

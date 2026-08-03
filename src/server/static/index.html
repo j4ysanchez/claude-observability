@@ -27,6 +27,9 @@
         <button type="button" class="tab-btn" data-view="subagent" role="tab" aria-selected="false">
           Subagents
         </button>
+        <button type="button" class="tab-btn" data-view="trend" role="tab" aria-selected="false">
+          Trend
+        </button>
       </nav>
 
       <section id="tool-breakdown" aria-labelledby="tool-breakdown-heading">
@@ -82,6 +85,22 @@
           No subagent usage recorded for this range yet.
         </p>
         <p class="hint">Click a row to see the individual delegations.</p>
+      </section>
+
+      <section id="trend-view" aria-labelledby="trend-view-heading" hidden>
+        <div class="section-heading-row">
+          <h2 id="trend-view-heading">Usage over time</h2>
+          <div class="granularity-selector" role="group" aria-label="Trend granularity">
+            <button type="button" class="granularity-btn is-active" data-granularity="day">Day</button>
+            <button type="button" class="granularity-btn" data-granularity="week">Week</button>
+          </div>
+        </div>
+
+        <div id="trend-chart" class="trend-chart"></div>
+        <p class="hint">
+          Bar length is each period's total tool + subagent invocations; periods with no
+          activity are shown as an empty bar rather than omitted.
+        </p>
       </section>
 
       <section id="event-list" aria-labelledby="event-list-heading" hidden>

@@ -2,7 +2,13 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { extname, join, normalize } from "node:path";
 import type Database from "better-sqlite3";
-import { handleEventDetail, handleEventsList, handleStatus, handleSummary } from "./routes.js";
+import {
+  handleEventDetail,
+  handleEventsList,
+  handleStatus,
+  handleSummary,
+  handleTrend,
+} from "./routes.js";
 
 export type RouteHandler = (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 
@@ -81,6 +87,20 @@ export function createDashboardHandler(config: DashboardHandlerConfig): RouteHan
         res,
         200,
         handleSummary(config.db, url.searchParams.get("range"), config.transcriptRoot)
+      );
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/trend") {
+      sendJson(
+        res,
+        200,
+        handleTrend(
+          config.db,
+          url.searchParams.get("range"),
+          url.searchParams.get("granularity"),
+          config.transcriptRoot
+        )
       );
       return;
     }

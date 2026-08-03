@@ -270,22 +270,22 @@ with days of no activity shown as zero.
 
 ### Tests for User Story 4
 
-- [ ] T047 [P] [US4] Add fixtures spanning 8+ distinct days, including at least one day
+- [X] T047 [P] [US4] Add fixtures spanning 8+ distinct days, including at least one day
       with zero activity, to `tests/fixtures/`
-- [ ] T048 [P] [US4] Unit test for trend bucketing (day and week granularity, one bucket
+- [X] T048 [P] [US4] Unit test for trend bucketing (day and week granularity, one bucket
       per period including zero-activity buckets) in `tests/unit/summarize.test.ts`
       (depends on T047)
-- [ ] T049 [P] [US4] Integration test for `GET /api/trend?range=&granularity=` in
+- [X] T049 [P] [US4] Integration test for `GET /api/trend?range=&granularity=` in
       `tests/integration/api-trend.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T050 [US4] Implement trend bucketing in `src/core/summarize.ts`: date-bucketed
+- [X] T050 [US4] Implement trend bucketing in `src/core/summarize.ts`: date-bucketed
       `toolCounts`/`subagentCounts` per day or week across the requested range, always one
       entry per bucket (FR-007) (depends on T024, T044)
-- [ ] T051 [US4] Implement `GET /api/trend?range=&granularity=` in `src/server/routes.ts`
+- [X] T051 [US4] Implement `GET /api/trend?range=&granularity=` in `src/server/routes.ts`
       per contracts/api.md (depends on T050)
-- [ ] T052 [US4] Build the trend view in `src/server/static/`: bar/sparkline markup per
+- [X] T052 [US4] Build the trend view in `src/server/static/`: bar/sparkline markup per
       day/week for tool and subagent counts, no charting library (depends on T051, T030)
 
 **Checkpoint**: User Stories 1–4 are all independently functional.
