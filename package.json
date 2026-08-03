@@ -1,0 +1,28 @@
+{
+  "name": "claude-observability",
+  "version": "0.1.0",
+  "description": "Local dashboard for Claude Code tool & subagent usage observability",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "observe": "dist/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli/main.js serve",
+    "sync": "node dist/cli/main.js sync",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.0"
+  }
+}

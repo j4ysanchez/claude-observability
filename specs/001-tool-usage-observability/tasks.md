@@ -40,16 +40,16 @@ tests/unit/   tests/integration/   tests/fixtures/
 **Purpose**: Bootstrap the Node/TypeScript project — this is a greenfield repo, no
 `package.json` or `src/` exists yet.
 
-- [ ] T001 Create project directory structure per plan.md: `src/core/`, `src/ingest/`,
+- [X] T001 Create project directory structure per plan.md: `src/core/`, `src/ingest/`,
       `src/storage/`, `src/server/static/`, `src/cli/`, `tests/unit/`,
       `tests/integration/`, `tests/fixtures/`
-- [ ] T002 Initialize `package.json` at repo root: TypeScript 5.x, Node 20+ engines,
+- [X] T002 Initialize `package.json` at repo root: TypeScript 5.x, Node 20+ engines,
       `better-sqlite3` + `@types/better-sqlite3` + `@types/node` + `vitest` as
       dependencies, and npm scripts `build`, `start`, `sync`, `test` wired to
       `src/cli/main.ts` / `tsc` / `vitest`
-- [ ] T003 [P] Configure `tsconfig.json` at repo root: Node20/ES2022 target, strict mode,
+- [X] T003 [P] Configure `tsconfig.json` at repo root: Node20/ES2022 target, strict mode,
       module resolution matching `better-sqlite3`'s CJS types
-- [ ] T004 [P] Configure `vitest.config.ts` at repo root covering `tests/unit/**` and
+- [X] T004 [P] Configure `vitest.config.ts` at repo root covering `tests/unit/**` and
       `tests/integration/**`
 
 **Checkpoint**: `npm install && npm test` runs (zero tests) with no errors.
