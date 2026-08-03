@@ -1,0 +1,8 @@
+{"type":"summary","summary":"Fixed the config loader bug","leafUuid":"e0"}
+{"type":"ai-title","title":"Fix config loader","sessionId":"fixture-session-5"}
+{"type":"attachment","attachment":{"kind":"image"},"sessionId":"fixture-session-5","uuid":"e1","parentUuid":null,"timestamp":"2026-08-01T14:00:00.000Z"}
+{"type":"file-history-snapshot","messageId":"m1","snapshot":{},"isSnapshotUpdate":false}
+{"type":"file-history-delta","messageId":"m2","delta":{}}
+{"type":"queue-operation","operation":"enqueue","sessionId":"fixture-session-5"}
+{"type":"last-prompt","prompt":"fix the bug","sessionId":"fixture-session-5"}
+{"type":"assistant","sessionId":"fixture-session-5","timestamp":"2026-08-01T14:00:01.000Z","cwd":"/Users/dev/project","gitBranch":"main","uuid":"e2","parentUuid":null,"message":{"role":"assistant","content":[{"type":"text","text":"Reading the config loader."},{"type":"tool_use","id":"tool_5","name":"Read","input":{"file_path":"/Users/dev/project/loader.ts"}}]}}

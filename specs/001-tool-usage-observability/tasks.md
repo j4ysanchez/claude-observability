@@ -65,47 +65,47 @@ I/O boundaries from the very first module).
 
 **⚠️ CRITICAL**: This phase blocks all of Phase 3+.
 
-- [ ] T005 [P] Implement SQLite schema in `src/storage/schema.ts`: `sessions`,
+- [X] T005 [P] Implement SQLite schema in `src/storage/schema.ts`: `sessions`,
       `usage_events`, `validation_checks`, `ingest_cursors` tables and all four indices,
       exactly as specified in data-model.md
-- [ ] T006 [P] Implement transcript discovery in `src/ingest/discover-transcripts.ts`:
+- [X] T006 [P] Implement transcript discovery in `src/ingest/discover-transcripts.ts`:
       walk `~/.claude/projects/**/*.jsonl` and return the list of transcript file paths
-- [ ] T007 [P] Implement cursor-based incremental reader in
+- [X] T007 [P] Implement cursor-based incremental reader in
       `src/ingest/incremental-reader.ts`: given a file path and a stored byte offset,
       return only the new lines and the new offset (research.md §9)
-- [ ] T008 [P] Implement `redact(text: string): string` in `src/core/redact.ts`: regex
+- [X] T008 [P] Implement `redact(text: string): string` in `src/core/redact.ts`: regex
       patterns for AWS-style keys, `Bearer `/`sk-`/`ghp_`-style tokens, PEM private-key
       blocks, `password=`/`token=`/`apikey=` key-value pairs, replacing matches with
       `[REDACTED]` (research.md §7, FR-017)
-- [ ] T009 [P] Implement `classify-outcome.ts` in `src/core/classify-outcome.ts`: given a
+- [X] T009 [P] Implement `classify-outcome.ts` in `src/core/classify-outcome.ts`: given a
       `tool_use` block and its matching `tool_result` (or none), return
       `succeeded | failed | denied | in_progress` per the rules in research.md §2
-- [ ] T010 [P] Implement `parse-transcript.ts` in `src/core/parse-transcript.ts`: parse one
+- [X] T010 [P] Implement `parse-transcript.ts` in `src/core/parse-transcript.ts`: parse one
       `.jsonl` line into a typed raw record, ignoring non-event line types (`summary`,
       `ai-title`, `attachment`, `file-history-snapshot`/`delta`, `queue-operation`,
       `last-prompt`) per research.md §1
-- [ ] T011 Implement base repository functions in `src/storage/repository.ts`: open/create
+- [X] T011 Implement base repository functions in `src/storage/repository.ts`: open/create
       the DB file at `~/.claude-observability/usage.db` (applying `schema.ts`), upsert/get
       `Session`, read/write `ingest_cursors` rows (depends on T005)
-- [ ] T012 [P] Implement the localhost-only HTTP listener in `src/server/http-server.ts`:
+- [X] T012 [P] Implement the localhost-only HTTP listener in `src/server/http-server.ts`:
       binds `127.0.0.1` only (FR-011), accepts a route-dispatch callback
-- [ ] T013 Implement the CLI entry point in `src/cli/main.ts`: `node:util.parseArgs` for
+- [X] T013 Implement the CLI entry point in `src/cli/main.ts`: `node:util.parseArgs` for
       `serve`, `sync`, and `--port`, wiring `serve` to `http-server.ts` (depends on T011,
       T012)
-- [ ] T014 [P] Create shared fixture transcript excerpts in `tests/fixtures/`: ordinary
+- [X] T014 [P] Create shared fixture transcript excerpts in `tests/fixtures/`: ordinary
       tool success, tool error (`is_error: true`), permission denial (fixed rejection
       message), and a `Task`/subagent `tool_use` block (research.md §11)
-- [ ] T015 [P] Unit test `redact.ts` against secret-pattern fixtures in
+- [X] T015 [P] Unit test `redact.ts` against secret-pattern fixtures in
       `tests/unit/redact.test.ts` (depends on T008)
-- [ ] T016 [P] Unit test `classify-outcome.ts` against success/error/denial fixtures in
+- [X] T016 [P] Unit test `classify-outcome.ts` against success/error/denial fixtures in
       `tests/unit/classify-outcome.test.ts` (depends on T009, T014)
-- [ ] T017 [P] Unit test `parse-transcript.ts` against fixtures, including ignored
+- [X] T017 [P] Unit test `parse-transcript.ts` against fixtures, including ignored
       non-event line types, in `tests/unit/parse-transcript.test.ts` (depends on T010,
       T014)
-- [ ] T018 [P] Integration test for `discover-transcripts.ts` + `incremental-reader.ts`
+- [X] T018 [P] Integration test for `discover-transcripts.ts` + `incremental-reader.ts`
       against real temp files (including a re-run that only picks up newly appended
       lines) in `tests/integration/ingest.test.ts` (depends on T006, T007)
-- [ ] T019 [P] Integration test for `schema.ts` + repository session/cursor functions
+- [X] T019 [P] Integration test for `schema.ts` + repository session/cursor functions
       against a real temp SQLite DB in `tests/integration/storage.test.ts` (depends on
       T011)
 
