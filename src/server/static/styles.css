@@ -75,6 +75,37 @@ h1 {
   color: var(--accent-fg);
 }
 
+.view-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  width: fit-content;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.35rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.tab-btn.is-active {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.outcome-mini-badges {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
 .status-message {
   padding: 1rem;
   border: 1px solid var(--border);

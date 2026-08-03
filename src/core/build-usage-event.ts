@@ -8,10 +8,49 @@ import type {
 } from "./types.js";
 import { classifyOutcome } from "./classify-outcome.js";
 import { detectValidation, extractReasoning, summarizeInput } from "./extract-context.js";
+import { redact } from "./redact.js";
 
 function contentBlocks(line: RawTranscriptLine): ReadonlyArray<ContentBlock> {
   const content = line.message.content;
   return typeof content === "string" ? [] : content;
+}
+
+interface SubagentFields {
+  readonly subagentType: string | null;
+  readonly subagentTask: string | null;
+}
+
+const NOT_A_SUBAGENT: SubagentFields = { subagentType: null, subagentTask: null };
+
+/**
+ * research.md §3 (FR-002/FR-003): a Task tool_use's own `input` already
+ * carries everything needed to describe the delegation — `subagent_type`
+ * and a `description`/`prompt` pair for the task it was given. `prompt` is
+ * preferred as the captured "task" when present (the full instruction the
+ * subagent received); `description` (a short label) is the fallback for a
+ * Task call that omits it. Redacted before it becomes part of a UsageEvent,
+ * same as reasoning/inputSummary (research.md §7). `null`/`null` for any
+ * non-Task tool_use — `subagentType`/`subagentTask` are non-null iff
+ * `isSubagent` (data-model.md validation rule).
+ */
+function extractSubagentFields(toolUse: ToolUseBlock): SubagentFields {
+  if (toolUse.name !== "Task") {
+    return NOT_A_SUBAGENT;
+  }
+
+  const subagentTypeInput = toolUse.input.subagent_type;
+  const promptInput = toolUse.input.prompt;
+  const descriptionInput = toolUse.input.description;
+
+  const subagentType = typeof subagentTypeInput === "string" ? subagentTypeInput : null;
+  const task =
+    typeof promptInput === "string"
+      ? promptInput
+      : typeof descriptionInput === "string"
+        ? descriptionInput
+        : null;
+
+  return { subagentType, subagentTask: task !== null ? redact(task) : null };
 }
 
 export interface BuildUsageEventsResult {
@@ -24,11 +63,11 @@ export interface BuildUsageEventsResult {
  * already-parsed transcript lines belonging to one session (research.md
  * §1-§6). Composes parse-transcript (already applied by the caller) ->
  * classify-outcome -> extract-context (reasoning/input/validation) into the
- * full UsageEvent shape. `subagentType`/`subagentTask` are left `null` for
- * now (populated in User Story 3, T043) — everything else free-text
- * (`reasoning`, `inputSummary`, a ValidationCheck's `checkedWhat`) is
- * already routed through redact() inside extract-context.ts before it ever
- * becomes part of these shapes.
+ * full UsageEvent shape. `subagentType`/`subagentTask` are populated from
+ * the Task tool's own `input` when `isSubagent` (research.md §3, FR-002/
+ * FR-003) — everything else free-text (`reasoning`, `inputSummary`, a
+ * ValidationCheck's `checkedWhat`, and `subagentTask`) is routed through
+ * redact() before it ever becomes part of these shapes.
  *
  * Each `tool_use` block is paired with the `tool_result` block (matching
  * `tool_use_id`) found anywhere else in the same batch; a `tool_use` with no
@@ -81,6 +120,7 @@ export function buildUsageEventsWithValidation(
       sequence += 1;
       const toolResult = resultsByToolUseId.get(toolUse.id) ?? null;
       const eventId = `${line.sessionId}:${toolUse.id}`;
+      const { subagentType, subagentTask } = extractSubagentFields(toolUse);
 
       events.push({
         eventId,
@@ -89,8 +129,8 @@ export function buildUsageEventsWithValidation(
         timestamp: line.timestamp,
         toolName: toolUse.name,
         isSubagent: toolUse.name === "Task",
-        subagentType: null,
-        subagentTask: null,
+        subagentType,
+        subagentTask,
         outcome: classifyOutcome(toolResult),
         reasoning: extractReasoning(blocks.slice(0, blockIndex)),
         inputSummary: summarizeInput(toolUse.input),

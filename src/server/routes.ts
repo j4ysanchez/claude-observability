@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import type Database from "better-sqlite3";
-import { byTool, type ToolCount } from "../core/summarize.js";
-import type { Outcome } from "../core/types.js";
+import { bySubagent, byTool, type SubagentCount, type ToolCount } from "../core/summarize.js";
 import { defaultTranscriptRoot } from "../ingest/discover-transcripts.js";
 import { syncTranscripts } from "../ingest/sync.js";
 import {
@@ -56,11 +55,7 @@ export interface SummaryResponse {
   readonly range: RangeParam;
   readonly generatedAt: string;
   readonly byTool: ReadonlyArray<ToolCount>;
-  readonly bySubagent: ReadonlyArray<{
-    readonly subagentType: string;
-    readonly count: number;
-    readonly outcomes: Record<Outcome, number>;
-  }>;
+  readonly bySubagent: ReadonlyArray<SubagentCount>;
 }
 
 /**
@@ -93,8 +88,7 @@ export function handleStatus(db: Database.Database, transcriptRoot?: string): St
 
 /**
  * GET /api/summary?range= (contracts/api.md): tool + subagent breakdown for
- * the range (FR-005, FR-006). `bySubagent` stays `[]` until User Story 3
- * populates it (research.md scope note in tasks.md T028).
+ * the range (FR-005, FR-006).
  */
 export function handleSummary(
   db: Database.Database,
@@ -111,7 +105,7 @@ export function handleSummary(
     range,
     generatedAt: new Date().toISOString(),
     byTool: byTool(events),
-    bySubagent: [],
+    bySubagent: bySubagent(events),
   };
 }
 

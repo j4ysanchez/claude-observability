@@ -1,10 +1,14 @@
 // Vanilla-JS dashboard frontend (no build step, no framework) — fetches the
 // JSON API in contracts/api.md and renders it with plain DOM calls.
 
-// `view` tracks which of the three sections (breakdown/events/detail) is
-// showing; `eventsFilter` is remembered so "Back to invocations" from the
+// `view` tracks which of the four sections (breakdown/subagent/events/detail)
+// is showing; `eventsFilter` is remembered so "Back to invocations" from the
 // detail panel can re-render the same filtered list without re-prompting.
-const state = { range: "today", view: "breakdown", eventsFilter: null };
+// `eventsReturnView` remembers which breakdown tab ("breakdown" or
+// "subagent") opened the current event list, so "Back to breakdown" returns
+// to the tab the user actually came from (User Story 3).
+const state = { range: "today", view: "breakdown", eventsFilter: null, eventsReturnView: "breakdown" };
+const OUTCOMES = ["succeeded", "failed", "denied", "in_progress"];
 
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -34,9 +38,18 @@ function outcomeBadge(outcome) {
 
 function showView(view) {
   document.getElementById("tool-breakdown").hidden = view !== "breakdown";
+  document.getElementById("subagent-breakdown").hidden = view !== "subagent";
   document.getElementById("event-list").hidden = view !== "events";
   document.getElementById("event-detail").hidden = view !== "detail";
   state.view = view;
+}
+
+function setActiveTab(view) {
+  for (const btn of document.querySelectorAll(".tab-btn")) {
+    const isActive = btn.dataset.view === view;
+    btn.classList.toggle("is-active", isActive);
+    btn.setAttribute("aria-selected", String(isActive));
+  }
 }
 
 // Renders the per-tool breakdown table, or the "no data" message in its
@@ -70,7 +83,66 @@ function renderToolTable(byTool) {
     countCell.textContent = String(row.count);
 
     tr.append(toolCell, countCell);
-    tr.addEventListener("click", () => openEventsView({ tool: row.toolName }).catch(handleRefreshError));
+    tr.addEventListener("click", () => {
+      state.eventsReturnView = "breakdown";
+      openEventsView({ tool: row.toolName }).catch(handleRefreshError);
+    });
+    tbody.append(tr);
+  }
+}
+
+// Renders the per-subagentType breakdown table — count plus an outcome
+// breakdown per type (User Story 3, FR-006), or the "no data" message in its
+// place (same FR-010 contract as the tool breakdown). Each row opens the
+// filtered event list for that subagent type; drilling into an invocation
+// from there reuses the same US2 detail view (openEventDetail below), now
+// also showing the subagent's task and outcome.
+function renderSubagentTable(bySubagent) {
+  const table = document.getElementById("subagent-table");
+  const tbody = document.getElementById("subagent-table-body");
+  const noData = document.getElementById("subagent-no-data-message");
+
+  tbody.replaceChildren();
+
+  if (bySubagent.length === 0) {
+    table.hidden = true;
+    noData.hidden = false;
+    return;
+  }
+
+  table.hidden = false;
+  noData.hidden = true;
+
+  for (const row of bySubagent) {
+    const tr = document.createElement("tr");
+    tr.classList.add("clickable-row");
+    tr.tabIndex = 0;
+
+    const typeCell = document.createElement("td");
+    typeCell.textContent = row.subagentType;
+
+    const countCell = document.createElement("td");
+    countCell.textContent = String(row.count);
+
+    const outcomesCell = document.createElement("td");
+    const outcomesWrap = document.createElement("div");
+    outcomesWrap.className = "outcome-mini-badges";
+    for (const outcome of OUTCOMES) {
+      const count = row.outcomes[outcome] ?? 0;
+      if (count === 0) {
+        continue;
+      }
+      const badge = outcomeBadge(outcome);
+      badge.textContent = `${badge.textContent} ${count}`;
+      outcomesWrap.append(badge);
+    }
+    outcomesCell.append(outcomesWrap);
+
+    tr.append(typeCell, countCell, outcomesCell);
+    tr.addEventListener("click", () => {
+      state.eventsReturnView = "subagent";
+      openEventsView({ subagentType: row.subagentType }).catch(handleRefreshError);
+    });
     tbody.append(tr);
   }
 }
@@ -174,6 +246,34 @@ async function openEventsView(filter) {
   showView("events");
 }
 
+// Toggles + fills the subagent-only detail fields (User Story 3): reuses the
+// same US2 detail view used for every invocation, just surfacing two
+// additional fields (subagentType/subagentTask) when this invocation was a
+// Task delegation. Hidden entirely for non-subagent invocations rather than
+// shown empty.
+function renderSubagentDetailFields(detail) {
+  const fieldIds = [
+    "detail-subagent-type-label",
+    "detail-subagent-type",
+    "detail-subagent-task-label",
+    "detail-subagent-task",
+  ];
+  for (const id of fieldIds) {
+    document.getElementById(id).hidden = !detail.isSubagent;
+  }
+  if (!detail.isSubagent) {
+    return;
+  }
+
+  const typeEl = document.getElementById("detail-subagent-type");
+  typeEl.classList.toggle("muted", detail.subagentType === null);
+  typeEl.textContent = detail.subagentType === null ? "Not captured" : detail.subagentType;
+
+  const taskEl = document.getElementById("detail-subagent-task");
+  taskEl.classList.toggle("muted", detail.subagentTask === null);
+  taskEl.textContent = detail.subagentTask === null ? "Not captured" : detail.subagentTask;
+}
+
 async function openEventDetail(eventId) {
   const detail = await fetchJson(`/api/events/${encodeURIComponent(eventId)}`);
 
@@ -184,6 +284,7 @@ async function openEventDetail(eventId) {
   const outcomeCell = document.getElementById("detail-outcome");
   outcomeCell.replaceChildren(outcomeBadge(detail.outcome));
 
+  renderSubagentDetailFields(detail);
   renderReasoning(detail.reasoning);
   document.getElementById("detail-input").textContent =
     detail.inputSummary === null ? "Not captured" : detail.inputSummary;
@@ -204,12 +305,14 @@ async function refresh() {
   if (!status.hasTranscriptSource || status.sessionCount === 0) {
     renderStatusMessage(status.message);
     renderToolTable([]);
+    renderSubagentTable([]);
     return;
   }
 
   renderStatusMessage(null);
   const summary = await fetchJson(`/api/summary?range=${encodeURIComponent(state.range)}`);
   renderToolTable(summary.byTool);
+  renderSubagentTable(summary.bySubagent);
 }
 
 function handleRefreshError(error) {
@@ -222,7 +325,7 @@ function init() {
     btn.addEventListener("click", () => {
       state.range = btn.dataset.range;
       setActiveRangeButton(state.range);
-      if (state.view === "breakdown") {
+      if (state.view === "breakdown" || state.view === "subagent") {
         refresh().catch(handleRefreshError);
       } else if (state.eventsFilter) {
         openEventsView(state.eventsFilter).catch(handleRefreshError);
@@ -230,16 +333,27 @@ function init() {
     });
   }
 
+  for (const btn of document.querySelectorAll(".tab-btn")) {
+    btn.addEventListener("click", () => {
+      setActiveTab(btn.dataset.view);
+      showView(btn.dataset.view);
+    });
+  }
+
   document.getElementById("back-to-breakdown").addEventListener("click", () => {
-    showView("breakdown");
-    refresh().catch(handleRefreshError);
+    const target = state.eventsReturnView;
+    setActiveTab(target);
+    refresh()
+      .then(() => showView(target))
+      .catch(handleRefreshError);
   });
 
   document.getElementById("back-to-events").addEventListener("click", () => {
     if (state.eventsFilter) {
       openEventsView(state.eventsFilter).catch(handleRefreshError);
     } else {
-      showView("breakdown");
+      setActiveTab(state.eventsReturnView);
+      showView(state.eventsReturnView);
     }
   });
 

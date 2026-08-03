@@ -57,11 +57,32 @@ describe("buildUsageEvents", () => {
     expect(event.inputSummary).toBe(JSON.stringify({ file_path: "/Users/dev/project/config.json" }));
   });
 
-  it("leaves subagentType/subagentTask null for now (US3 not yet built)", () => {
+  it("leaves subagentType/subagentTask null for a non-Task tool_use", () => {
     const [event] = buildUsageEvents(loadLines("tool-success.jsonl"));
 
     expect(event.subagentType).toBeNull();
     expect(event.subagentTask).toBeNull();
+  });
+
+  it("populates subagentType and a redacted subagentTask from the Task tool's input (US3, FR-002/FR-003)", () => {
+    const [event] = buildUsageEvents(loadLines("subagent-task.jsonl"));
+
+    expect(event.subagentType).toBe("Explore");
+    expect(event.subagentTask).toBe(
+      "Search the codebase for every call site of foo() and list the files."
+    );
+  });
+
+  it("populates subagentType/subagentTask for each of several Task invocations with different types and outcomes", () => {
+    const events = buildUsageEvents(loadLines("subagent-multi.jsonl"));
+
+    expect(events).toHaveLength(3);
+    expect(events.map((e) => ({ subagentType: e.subagentType, outcome: e.outcome }))).toEqual([
+      { subagentType: "Explore", outcome: "succeeded" },
+      { subagentType: "code-reviewer", outcome: "failed" },
+      { subagentType: "Explore", outcome: "in_progress" },
+    ]);
+    expect(events[2]!.subagentTask).toContain("tests directory");
   });
 
   it("returns reasoning: null when a tool_use has no preceding text/thinking block, never fabricating one", () => {

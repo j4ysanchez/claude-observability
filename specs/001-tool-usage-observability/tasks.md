@@ -231,27 +231,27 @@ task and final outcome, including an `in_progress` case for a still-running dele
 
 ### Tests for User Story 3
 
-- [ ] T040 [P] [US3] Add fixtures to `tests/fixtures/`: multiple `Task` invocations with
+- [X] T040 [P] [US3] Add fixtures to `tests/fixtures/`: multiple `Task` invocations with
       different `subagent_type` values and outcomes, including one with no matching
       `tool_result` yet (in_progress)
-- [ ] T041 [P] [US3] Unit test for `bySubagent` aggregation (per-type count + outcome
+- [X] T041 [P] [US3] Unit test for `bySubagent` aggregation (per-type count + outcome
       breakdown) in `tests/unit/summarize.test.ts` (depends on T040)
-- [ ] T042 [P] [US3] Integration test for subagent breakdown in `GET /api/summary` and
+- [X] T042 [P] [US3] Integration test for subagent breakdown in `GET /api/summary` and
       drill-down via `GET /api/events/:eventId` (task + outcome, incl. `in_progress`) in
       `tests/integration/api-summary.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Extend `build-usage-event.ts` to populate `subagentType` and
+- [X] T043 [US3] Extend `build-usage-event.ts` to populate `subagentType` and
       `subagentTask` (redacted `description`/`prompt`) from the `Task` tool's `input` when
       `isSubagent` is true (FR-002/FR-003) in `src/core/build-usage-event.ts` (depends on
       T035)
-- [ ] T044 [US3] Extend `summarize.ts` to compute `bySubagent`: per-`subagentType` count
+- [X] T044 [US3] Extend `summarize.ts` to compute `bySubagent`: per-`subagentType` count
       and an `outcomes` breakdown across all four outcome values (FR-006) in
       `src/core/summarize.ts` (depends on T024)
-- [ ] T045 [US3] Wire `bySubagent` into the `GET /api/summary` response in
+- [X] T045 [US3] Wire `bySubagent` into the `GET /api/summary` response in
       `src/server/routes.ts` (was `[]`) (depends on T028, T044)
-- [ ] T046 [US3] Build the subagent usage view in `src/server/static/`: per-type counts
+- [X] T046 [US3] Build the subagent usage view in `src/server/static/`: per-type counts
       and outcome breakdown, drilling into an invocation reuses the US2 detail view to
       show task/outcome (depends on T045, T039)
 

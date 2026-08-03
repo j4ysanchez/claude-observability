@@ -20,6 +20,15 @@
     <main>
       <p id="status-message" class="status-message" hidden></p>
 
+      <nav class="view-tabs" role="tablist" aria-label="Breakdown view">
+        <button type="button" class="tab-btn is-active" data-view="breakdown" role="tab" aria-selected="true">
+          Tools
+        </button>
+        <button type="button" class="tab-btn" data-view="subagent" role="tab" aria-selected="false">
+          Subagents
+        </button>
+      </nav>
+
       <section id="tool-breakdown" aria-labelledby="tool-breakdown-heading">
         <div class="section-heading-row">
           <h2 id="tool-breakdown-heading">Tool breakdown</h2>
@@ -45,6 +54,34 @@
           No tool usage recorded for this range yet.
         </p>
         <p class="hint">Click a row to see the individual invocations.</p>
+      </section>
+
+      <section id="subagent-breakdown" aria-labelledby="subagent-breakdown-heading" hidden>
+        <div class="section-heading-row">
+          <h2 id="subagent-breakdown-heading">Subagent breakdown</h2>
+          <div class="outcome-legend" title="Outcome states tracked per invocation (FR-009)">
+            <span class="badge badge-succeeded">succeeded</span>
+            <span class="badge badge-failed">failed</span>
+            <span class="badge badge-denied">denied</span>
+            <span class="badge badge-in_progress">in progress</span>
+          </div>
+        </div>
+
+        <table id="subagent-table">
+          <thead>
+            <tr>
+              <th scope="col">Subagent type</th>
+              <th scope="col">Invocations</th>
+              <th scope="col">Outcomes</th>
+            </tr>
+          </thead>
+          <tbody id="subagent-table-body"></tbody>
+        </table>
+
+        <p id="subagent-no-data-message" class="no-data-message" hidden>
+          No subagent usage recorded for this range yet.
+        </p>
+        <p class="hint">Click a row to see the individual delegations.</p>
       </section>
 
       <section id="event-list" aria-labelledby="event-list-heading" hidden>
@@ -83,6 +120,12 @@
 
           <dt>Outcome</dt>
           <dd id="detail-outcome"></dd>
+
+          <dt id="detail-subagent-type-label" hidden>Subagent type</dt>
+          <dd id="detail-subagent-type" hidden></dd>
+
+          <dt id="detail-subagent-task-label" hidden>Subagent task</dt>
+          <dd id="detail-subagent-task" hidden></dd>
 
           <dt>Why (reasoning)</dt>
           <dd id="detail-reasoning"></dd>
