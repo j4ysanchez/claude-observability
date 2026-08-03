@@ -124,42 +124,42 @@ open the usage view, confirm accurate per-tool counts; with zero sessions, confi
 
 ### Tests for User Story 1
 
-- [ ] T020 [P] [US1] Unit test for the minimal `build-usage-event.ts` pipeline (session
+- [X] T020 [P] [US1] Unit test for the minimal `build-usage-event.ts` pipeline (session
       id/sequence/timestamp/toolName/isSubagent/outcome/projectPath, redaction applied) in
       `tests/unit/build-usage-event.test.ts`
-- [ ] T021 [P] [US1] Unit test for `summarize.ts` `byTool` aggregation, including the
+- [X] T021 [P] [US1] Unit test for `summarize.ts` `byTool` aggregation, including the
       empty-array-not-omitted case, in `tests/unit/summarize.test.ts`
-- [ ] T022 [P] [US1] Integration test for `GET /api/status` and `GET /api/summary?range=`
+- [X] T022 [P] [US1] Integration test for `GET /api/status` and `GET /api/summary?range=`
       (empty DB, then populated) against a real temp transcript root + DB + HTTP server in
       `tests/integration/api-summary.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T023 [US1] Implement the minimal pipeline in `src/core/build-usage-event.ts`:
+- [X] T023 [US1] Implement the minimal pipeline in `src/core/build-usage-event.ts`:
       compose `parse-transcript` → `classify-outcome` → `redact` into a `UsageEvent` with
       `eventId`, `sessionId`, `sequence`, `timestamp`, `toolName`, `isSubagent` (`toolName
       === 'Task'`), `outcome`, `projectPath`; `reasoning`/`inputSummary`/`subagentType`/
       `subagentTask` left `null` for now (depends on T008, T009, T010)
-- [ ] T024 [US1] Implement `byTool` aggregation in `src/core/summarize.ts`: group
+- [X] T024 [US1] Implement `byTool` aggregation in `src/core/summarize.ts`: group
       `UsageEvent[]` by `toolName` into `{ toolName, count }[]`, empty array when no data
       (depends on T023)
-- [ ] T025 [US1] Implement `usage_events` write (upsert by `eventId`, idempotent) and
+- [X] T025 [US1] Implement `usage_events` write (upsert by `eventId`, idempotent) and
       `byTool`-scoped read query functions in `src/storage/repository.ts` (depends on
       T011, T023)
-- [ ] T026 [US1] Implement sync orchestration in `src/ingest/sync.ts`: for each discovered
+- [X] T026 [US1] Implement sync orchestration in `src/ingest/sync.ts`: for each discovered
       transcript, tail new lines via the cursor, run them through
       `build-usage-event.ts`, upsert rows, advance the cursor (depends on T006, T007,
       T023, T025)
-- [ ] T027 [US1] Implement `GET /api/status` in `src/server/routes.ts`: run sync first,
+- [X] T027 [US1] Implement `GET /api/status` in `src/server/routes.ts`: run sync first,
       then return `hasTranscriptSource`, `transcriptRoot`, `sessionCount`,
       `lastIngestAt`, and a distinct `message` for "no transcript root" vs. "zero
       sessions" per contracts/api.md (depends on T026)
-- [ ] T028 [US1] Implement `GET /api/summary?range=` in `src/server/routes.ts`: run sync
+- [X] T028 [US1] Implement `GET /api/summary?range=` in `src/server/routes.ts`: run sync
       first, return `byTool` from T024; `bySubagent` returns `[]` until US3 populates it
       (depends on T024, T026)
-- [ ] T029 [US1] Wire `routes.ts` into `http-server.ts` request dispatch in
+- [X] T029 [US1] Wire `routes.ts` into `http-server.ts` request dispatch in
       `src/server/http-server.ts` (depends on T012, T027, T028)
-- [ ] T030 [US1] Build the dashboard shell and tool breakdown view in
+- [X] T030 [US1] Build the dashboard shell and tool breakdown view in
       `src/server/static/index.html`, `src/server/static/app.js`,
       `src/server/static/styles.css`: range selector (today/7d/30d/all), per-tool count
       table, outcome badges (FR-009), and the "no data" message from `/api/status`

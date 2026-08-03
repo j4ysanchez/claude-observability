@@ -11,7 +11,7 @@
     "observe": "dist/cli/main.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/server/static && cp -r src/server/static/. dist/server/static/",
     "start": "node dist/cli/main.js serve",
     "sync": "node dist/cli/main.js sync",
     "test": "vitest run"

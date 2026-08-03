@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claude Code Usage Observability</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>Tool &amp; Subagent Usage</h1>
+      <div class="range-selector" role="group" aria-label="Time range">
+        <button type="button" class="range-btn is-active" data-range="today">Today</button>
+        <button type="button" class="range-btn" data-range="7d">7 days</button>
+        <button type="button" class="range-btn" data-range="30d">30 days</button>
+        <button type="button" class="range-btn" data-range="all">All time</button>
+      </div>
+    </header>
+
+    <main>
+      <p id="status-message" class="status-message" hidden></p>
+
+      <section id="tool-breakdown" aria-labelledby="tool-breakdown-heading">
+        <div class="section-heading-row">
+          <h2 id="tool-breakdown-heading">Tool breakdown</h2>
+          <div class="outcome-legend" title="Outcome states tracked per invocation (FR-009)">
+            <span class="badge badge-succeeded">succeeded</span>
+            <span class="badge badge-failed">failed</span>
+            <span class="badge badge-denied">denied</span>
+            <span class="badge badge-in_progress">in progress</span>
+          </div>
+        </div>
+
+        <table id="tool-table">
+          <thead>
+            <tr>
+              <th scope="col">Tool</th>
+              <th scope="col">Invocations</th>
+            </tr>
+          </thead>
+          <tbody id="tool-table-body"></tbody>
+        </table>
+
+        <p id="no-data-message" class="no-data-message" hidden>
+          No tool usage recorded for this range yet.
+        </p>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

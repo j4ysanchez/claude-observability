@@ -60,3 +60,24 @@ export interface Session {
   readonly lastEventAt: string;
   readonly transcriptPath: string;
 }
+
+/**
+ * A single tool invocation. A "Subagent Invocation" is a UsageEvent with
+ * `toolName === 'Task'` (`isSubagent === true`) plus `subagentType`/
+ * `subagentTask` populated — same shape, not a separate type (Principle
+ * III: composition, not a type hierarchy). See data-model.md.
+ */
+export interface UsageEvent {
+  readonly eventId: string;
+  readonly sessionId: string;
+  readonly sequence: number;
+  readonly timestamp: string;
+  readonly toolName: string;
+  readonly isSubagent: boolean;
+  readonly subagentType: string | null;
+  readonly subagentTask: string | null;
+  readonly outcome: Outcome;
+  readonly reasoning: string | null;
+  readonly inputSummary: string | null;
+  readonly projectPath: string;
+}
